@@ -2,6 +2,9 @@ from PySide2.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget, QLineE
 from PySide2.QtCore import Slot
 from PySide2 import QtCore
 from PySide2.QtGui import QCursor
+from setup import connection as db, session as s
+import bcrypt
+from views.dashboard import Dashboard
 
 class WelcomeTest():
   @Slot()
@@ -9,7 +12,35 @@ class WelcomeTest():
     email=self.email.text()
     password=self.password.text()
     
-    print(email,password)
+    if email == "" and password == "":
+      self.error.setText("Field is required")
+      self.error.setStyleSheet("background: red; padding: 1ex; color: white;")
+    elif email != "" and password == "":
+      self.error.setText("Password is required")
+      self.error.setStyleSheet("background: red; padding: 1ex; color: white;")
+    else:
+      self.error.setText("")
+      self.error.setStyleSheet("background: transparent; padding: 0; color: #ccc;")
+      
+      sql = "SELECT * FROM public.users WHERE public.users.email='"+email+"'"
+      result = db.read(sql)
+      
+      if not result:
+        print("Account not registered")
+        return False
+      else:
+        # Check password verify
+        hashed = result[5].encode("utf8")
+        passwd = b''+password.encode("utf8")
+        matched = bcrypt.checkpw(passwd, hashed)
+        
+        if not matched:
+          print("Passwords do not match")
+        else:
+          # Save id(uuid) to session
+          s.save(str(result[0]))
+          
+          Dashboard().main()
     
   def main(self):
     app = QApplication([]);
@@ -21,6 +52,8 @@ class WelcomeTest():
     self.password=QLineEdit()
     checkbox=QCheckBox("remember me")
     forget_password=QLabel("Forget password?")
+    
+    self.error = QLabel();
     
     btn_login=QPushButton("Login")
     
@@ -41,6 +74,8 @@ class WelcomeTest():
     helpers=QHBoxLayout()
     helpers.setSpacing(240)
     
+    
+    layout.addWidget(self.error)
     layout.addWidget(self.label)
     layout.addWidget(email_label)
     layout.addWidget(self.email)
