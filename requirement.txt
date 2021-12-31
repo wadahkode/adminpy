@@ -1,0 +1,4 @@
+bcrypt
+pwinput
+psycopg
+PyQt5
